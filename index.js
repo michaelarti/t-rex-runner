@@ -1810,6 +1810,14 @@
             }
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, sourceWidth, sourceHeight);
+
+            // Re-draw the original sprite with 'lighten' so its light pixels
+            // (the white eye and body outline) show through the rainbow. The
+            // eye is opaque white in the sprite, so 'lighten' keeps it white
+            // while the darker gray body stays tinted by the gradient.
+            ctx.globalCompositeOperation = 'lighten';
+            ctx.drawImage(Runner.imageSprite, sourceX, sourceY,
+                sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
             ctx.globalCompositeOperation = 'source-over';
 
             // Blit the rainbow t-rex onto the game canvas.
