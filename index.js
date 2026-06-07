@@ -1829,8 +1829,10 @@
         },
 
         /**
-         * Draw a sword raised in the t-rex's hand. Positioned relative to the
-         * sprite's drawn rectangle so it tracks the t-rex as it runs/jumps.
+         * Draw a sword in the t-rex's hand. Positioned relative to the sprite's
+         * drawn rectangle so it tracks the t-rex. While running/jumping the
+         * sword is raised overhead; while ducking it is thrust forward as if
+         * stabbing.
          * @param {number} destX
          * @param {number} destY
          * @param {number} destWidth
@@ -1838,18 +1840,31 @@
          */
         drawSword: function (destX, destY, destWidth, destHeight) {
             var ctx = this.canvasCtx;
-            // Scale relative to the standing sprite frame (44 x 47).
-            var sx = destWidth / Trex.config.WIDTH;
+            var ducking = this.ducking && this.status != Trex.status.CRASHED;
+            // Scale relative to the active sprite frame (44 or 59 wide, 47 tall).
+            var sx = destWidth /
+                (ducking ? Trex.config.WIDTH_DUCK : Trex.config.WIDTH);
             var sy = destHeight / Trex.config.HEIGHT;
-            // Hand position on the t-rex's little arm (front of the torso).
-            var handX = destX + 33 * sx;
-            var handY = destY + 27 * sy;
-            // Blade points up and forward (to the right), rising past the head.
-            var bladeLen = 30 * sy;
+
+            var handX, handY, angle, bladeLen;
+            if (ducking) {
+                // Thrust forward: gripped at the front of the crouched body,
+                // blade pointing straight ahead (to the right) past the snout.
+                handX = destX + 42 * sx;
+                handY = destY + 28 * sy;
+                angle = Math.atan2(2 * sy, 26 * sx);
+                bladeLen = 26 * sx;
+            } else {
+                // Raised overhead, pointing up and forward past the head.
+                handX = destX + 33 * sx;
+                handY = destY + 27 * sy;
+                angle = Math.atan2(-28 * sy, 16 * sx);
+                bladeLen = 30 * sy;
+            }
 
             ctx.save();
             ctx.translate(handX, handY);
-            ctx.rotate(Math.atan2(-28 * sy, 16 * sx));
+            ctx.rotate(angle);
             ctx.lineCap = 'round';
 
             // Handle behind the grip.
