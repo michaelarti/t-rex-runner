@@ -1738,8 +1738,7 @@
 
             // Ducking.
             if (this.ducking && this.status != Trex.status.CRASHED) {
-                this.canvasCtx.drawImage(Runner.imageSprite, sourceX, sourceY,
-                    sourceWidth, sourceHeight,
+                this.drawRainbow(sourceX, sourceY, sourceWidth, sourceHeight,
                     this.xPos, this.yPos,
                     this.config.WIDTH_DUCK, this.config.HEIGHT);
             } else {
@@ -1748,11 +1747,63 @@
                     this.xPos++;
                 }
                 // Standing / running
-                this.canvasCtx.drawImage(Runner.imageSprite, sourceX, sourceY,
-                    sourceWidth, sourceHeight,
+                this.drawRainbow(sourceX, sourceY, sourceWidth, sourceHeight,
                     this.xPos, this.yPos,
                     this.config.WIDTH, this.config.HEIGHT);
             }
+        },
+
+        /**
+         * Draw the t-rex sprite recoloured from gray to rainbow.
+         * The gray silhouette is rendered to an offscreen buffer and tinted
+         * with a rainbow gradient using 'source-atop', so only the t-rex
+         * pixels (not the background or ground) get coloured. The result is
+         * then blitted onto the game canvas.
+         * @param {number} sourceX
+         * @param {number} sourceY
+         * @param {number} sourceWidth
+         * @param {number} sourceHeight
+         * @param {number} destX
+         * @param {number} destY
+         * @param {number} destWidth
+         * @param {number} destHeight
+         */
+        drawRainbow: function (sourceX, sourceY, sourceWidth, sourceHeight,
+                               destX, destY, destWidth, destHeight) {
+            // Lazily create the offscreen tint buffer.
+            if (!this.rainbowCanvas) {
+                this.rainbowCanvas = document.createElement('canvas');
+                this.rainbowCtx = this.rainbowCanvas.getContext('2d');
+            }
+            var buffer = this.rainbowCanvas;
+            var ctx = this.rainbowCtx;
+
+            if (buffer.width != sourceWidth || buffer.height != sourceHeight) {
+                buffer.width = sourceWidth;
+                buffer.height = sourceHeight;
+            }
+            ctx.clearRect(0, 0, sourceWidth, sourceHeight);
+
+            // Draw the gray t-rex frame into the buffer.
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.drawImage(Runner.imageSprite, sourceX, sourceY,
+                sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+
+            // Tint only the drawn pixels with a rainbow gradient.
+            ctx.globalCompositeOperation = 'source-atop';
+            var gradient = ctx.createLinearGradient(0, 0, sourceWidth, sourceHeight);
+            var colors = ['#ff0000', '#ff9900', '#ffff00', '#33cc33',
+                '#0099ff', '#3333ff', '#cc33ff'];
+            for (var i = 0; i < colors.length; i++) {
+                gradient.addColorStop(i / (colors.length - 1), colors[i]);
+            }
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, sourceWidth, sourceHeight);
+            ctx.globalCompositeOperation = 'source-over';
+
+            // Blit the rainbow t-rex onto the game canvas.
+            this.canvasCtx.drawImage(buffer, 0, 0, sourceWidth, sourceHeight,
+                destX, destY, destWidth, destHeight);
         },
 
         /**
