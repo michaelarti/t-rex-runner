@@ -1823,6 +1823,74 @@
             // Blit the rainbow t-rex onto the game canvas.
             this.canvasCtx.drawImage(buffer, 0, 0, sourceWidth, sourceHeight,
                 destX, destY, destWidth, destHeight);
+
+            // Give the t-rex a sword raised in its hand.
+            this.drawSword(destX, destY, destWidth, destHeight);
+        },
+
+        /**
+         * Draw a sword raised in the t-rex's hand. Positioned relative to the
+         * sprite's drawn rectangle so it tracks the t-rex as it runs/jumps.
+         * @param {number} destX
+         * @param {number} destY
+         * @param {number} destWidth
+         * @param {number} destHeight
+         */
+        drawSword: function (destX, destY, destWidth, destHeight) {
+            var ctx = this.canvasCtx;
+            // Scale relative to the standing sprite frame (44 x 47).
+            var sx = destWidth / Trex.config.WIDTH;
+            var sy = destHeight / Trex.config.HEIGHT;
+            // Hand position on the t-rex's little arm (front of the torso).
+            var handX = destX + 33 * sx;
+            var handY = destY + 27 * sy;
+            // Blade points up and forward (to the right), rising past the head.
+            var bladeLen = 30 * sy;
+
+            ctx.save();
+            ctx.translate(handX, handY);
+            ctx.rotate(Math.atan2(-28 * sy, 16 * sx));
+            ctx.lineCap = 'round';
+
+            // Handle behind the grip.
+            ctx.strokeStyle = '#5b3a1a';
+            ctx.lineWidth = 3 * sx;
+            ctx.beginPath();
+            ctx.moveTo(-5 * sx, 0);
+            ctx.lineTo(0, 0);
+            ctx.stroke();
+
+            // Pommel.
+            ctx.fillStyle = '#d4af37';
+            ctx.beginPath();
+            ctx.arc(-5 * sx, 0, 1.8 * sx, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Crossguard.
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 2.5 * sx;
+            ctx.beginPath();
+            ctx.moveTo(0, -3.5 * sy);
+            ctx.lineTo(0, 3.5 * sy);
+            ctx.stroke();
+
+            // Blade.
+            ctx.strokeStyle = '#c2c7cf';
+            ctx.lineWidth = 3 * sx;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(bladeLen, 0);
+            ctx.stroke();
+
+            // Blade highlight.
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1 * sx;
+            ctx.beginPath();
+            ctx.moveTo(2 * sx, -0.6 * sx);
+            ctx.lineTo(bladeLen - 2 * sx, -0.6 * sx);
+            ctx.stroke();
+
+            ctx.restore();
         },
 
         /**
