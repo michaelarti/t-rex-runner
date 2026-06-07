@@ -1789,13 +1789,24 @@
             ctx.drawImage(Runner.imageSprite, sourceX, sourceY,
                 sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
 
-            // Tint only the drawn pixels with a rainbow gradient.
+            // Advance the phase so the colours flow as the t-rex runs.
+            this.rainbowPhase = ((this.rainbowPhase || 0) + 0.02) % 1;
+
+            // Tint only the drawn pixels with a scrolling rainbow gradient.
+            // The gradient spans two seamless rainbow cycles and is shifted by
+            // the phase each frame, so the colours appear to flow horizontally.
             ctx.globalCompositeOperation = 'source-atop';
-            var gradient = ctx.createLinearGradient(0, 0, sourceWidth, sourceHeight);
+            var startX = -this.rainbowPhase * sourceWidth;
+            var gradient = ctx.createLinearGradient(
+                startX, 0, startX + sourceWidth * 2, 0);
+            // Last colour equals the first so each cycle joins seamlessly.
             var colors = ['#ff0000', '#ff9900', '#ffff00', '#33cc33',
-                '#0099ff', '#3333ff', '#cc33ff'];
-            for (var i = 0; i < colors.length; i++) {
-                gradient.addColorStop(i / (colors.length - 1), colors[i]);
+                '#0099ff', '#3333ff', '#cc33ff', '#ff0000'];
+            var segments = colors.length - 1;
+            for (var cycle = 0; cycle < 2; cycle++) {
+                for (var i = 0; i < colors.length; i++) {
+                    gradient.addColorStop((cycle + i / segments) / 2, colors[i]);
+                }
             }
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, sourceWidth, sourceHeight);
