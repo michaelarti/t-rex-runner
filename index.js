@@ -174,7 +174,8 @@
             RESTART: { x: 2, y: 2 },
             TEXT_SPRITE: { x: 655, y: 2 },
             TREX: { x: 848, y: 2 },
-            STAR: { x: 645, y: 2 }
+            STAR: { x: 645, y: 2 },
+            HEDGEHOG: { x: 1235, y: 2 }
         },
         HDPI: {
             CACTUS_LARGE: { x: 652, y: 2 },
@@ -186,7 +187,8 @@
             RESTART: { x: 2, y: 2 },
             TEXT_SPRITE: { x: 1294, y: 2 },
             TREX: { x: 1678, y: 2 },
-            STAR: { x: 1276, y: 2 }
+            STAR: { x: 1276, y: 2 },
+            HEDGEHOG: { x: 2443, y: 2 }
         }
     };
 
@@ -1381,12 +1383,6 @@
              * Draw and crop based on size.
              */
             draw: function () {
-                // Procedurally drawn obstacles (the hedgehog) bypass the sprite.
-                if (this.typeConfig.custom) {
-                    this.drawHedgehog();
-                    return;
-                }
-
                 var sourceWidth = this.typeConfig.width;
                 var sourceHeight = this.typeConfig.height;
 
@@ -1409,83 +1405,6 @@
                     sourceWidth * this.size, sourceHeight,
                     this.xPos, this.yPos,
                     this.typeConfig.width * this.size, this.typeConfig.height);
-            },
-
-            /**
-             * Draw the hedgehog obstacle procedurally: a rounded body covered in
-             * spikes, with a small pointed face. Sized to the typeConfig box and
-             * positioned at (xPos, yPos), matching the game's gray style.
-             */
-            drawHedgehog: function () {
-                var ctx = this.canvasCtx;
-                var x = this.xPos;
-                var y = this.yPos;
-                var w = this.typeConfig.width;
-                var h = this.typeConfig.height;
-                var color = '#535353';
-                var baseY = y + h;          // ground line
-                var domeCx = x + w * 0.54;  // body centre
-                var domeCy = baseY - h * 0.28;
-                var domeRx = w * 0.46;
-
-                ctx.save();
-                ctx.fillStyle = color;
-
-                // Spikes fanned across the back and top.
-                var spikes = 9;
-                for (var i = 0; i < spikes; i++) {
-                    var a = Math.PI * (1.08 - (i / (spikes - 1)) * 1.18);
-                    var bx = domeCx + Math.cos(a) * domeRx * 0.72;
-                    var by = domeCy - Math.sin(a) * (h * 0.20);
-                    var tipX = domeCx + Math.cos(a) * domeRx * 1.18;
-                    var tipY = domeCy - Math.sin(a) * (h * 0.62);
-                    ctx.beginPath();
-                    ctx.moveTo(bx - 2.4, by);
-                    ctx.lineTo(tipX, tipY);
-                    ctx.lineTo(bx + 2.4, by);
-                    ctx.closePath();
-                    ctx.fill();
-                }
-
-                // Rounded body sitting on the ground.
-                ctx.beginPath();
-                ctx.moveTo(x + w * 0.08, baseY);
-                ctx.quadraticCurveTo(x + w * 0.02, baseY - h * 0.5,
-                    x + w * 0.42, baseY - h * 0.5);
-                ctx.quadraticCurveTo(x + w * 0.98, baseY - h * 0.52,
-                    x + w * 0.94, baseY);
-                ctx.closePath();
-                ctx.fill();
-
-                // Pointed face/snout on the left (facing the t-rex).
-                ctx.beginPath();
-                ctx.moveTo(x + w * 0.14, baseY - h * 0.34);
-                ctx.lineTo(x - w * 0.04, baseY - h * 0.14);
-                ctx.lineTo(x + w * 0.20, baseY - h * 0.04);
-                ctx.closePath();
-                ctx.fill();
-
-                // Feet.
-                ctx.fillRect(x + w * 0.30, baseY - 2, 4, 3);
-                ctx.fillRect(x + w * 0.60, baseY - 2, 4, 3);
-
-                // Nose.
-                ctx.fillStyle = '#000000';
-                ctx.beginPath();
-                ctx.arc(x - w * 0.02, baseY - h * 0.14, 1.6, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Eye.
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(x + w * 0.16, baseY - h * 0.30, 1.9, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = '#000000';
-                ctx.beginPath();
-                ctx.arc(x + w * 0.16, baseY - h * 0.30, 0.9, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.restore();
             },
 
             /**
@@ -1618,8 +1537,7 @@
     /**
      * Hedgehog obstacle. Not part of the random Obstacle.types pool - it is
      * spawned explicitly every 100 points. Two small-cacti wide (34 x 35) and
-     * drawn procedurally (see Obstacle.prototype.drawHedgehog) rather than from
-     * the sprite sheet.
+     * drawn from the sprite sheet via the HEDGEHOG sprite definition.
      */
     Obstacle.hedgehogType = {
         type: 'HEDGEHOG',
@@ -1629,7 +1547,6 @@
         multipleSpeed: 999,
         minGap: 150,
         minSpeed: 0,
-        custom: true,
         collisionBoxes: [
             new CollisionBox(3, 13, 28, 22),
             new CollisionBox(8, 5, 20, 9)
@@ -2963,7 +2880,7 @@
             }
 
             this.obstacles.push(new Obstacle(this.canvasCtx,
-                Obstacle.hedgehogType, this.spritePos.CACTUS_SMALL,
+                Obstacle.hedgehogType, this.spritePos.HEDGEHOG,
                 this.dimensions, this.gapCoefficient, currentSpeed, xOffset));
         },
 
