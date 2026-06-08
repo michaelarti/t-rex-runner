@@ -42,6 +42,9 @@
         this.msPerFrame = 1000 / FPS;
         this.currentSpeed = this.config.SPEED;
 
+        // Score at which the next hedgehog obstacle should appear.
+        this.nextHedgehogScore = 100;
+
         this.obstacles = [];
 
         this.activated = false; // Whether the easter egg has been activated.
@@ -601,6 +604,17 @@
                         }
                     }
                 }
+
+                // Spawn a hedgehog obstacle each time the score passes a
+                // multiple of 100.
+                if (hasObstacles) {
+                    var currentScore = this.distanceMeter.getActualDistance(
+                        Math.ceil(this.distanceRan));
+                    if (currentScore >= this.nextHedgehogScore) {
+                        this.horizon.addHedgehog(this.currentSpeed);
+                        this.nextHedgehogScore += 100;
+                    }
+                }
             }
 
             if (this.playing || (!this.activated &&
@@ -830,6 +844,7 @@
                 this.playing = true;
                 this.crashed = false;
                 this.distanceRan = 0;
+                this.nextHedgehogScore = 100;
                 this.setSpeed(this.config.SPEED);
                 this.time = getTimeStamp();
                 this.containerEl.classList.remove(Runner.classes.CRASHED);
@@ -1366,6 +1381,12 @@
              * Draw and crop based on size.
              */
             draw: function () {
+                // Procedurally drawn obstacles (the hedgehog) bypass the sprite.
+                if (this.typeConfig.custom) {
+                    this.drawHedgehog();
+                    return;
+                }
+
                 var sourceWidth = this.typeConfig.width;
                 var sourceHeight = this.typeConfig.height;
 
@@ -1388,6 +1409,83 @@
                     sourceWidth * this.size, sourceHeight,
                     this.xPos, this.yPos,
                     this.typeConfig.width * this.size, this.typeConfig.height);
+            },
+
+            /**
+             * Draw the hedgehog obstacle procedurally: a rounded body covered in
+             * spikes, with a small pointed face. Sized to the typeConfig box and
+             * positioned at (xPos, yPos), matching the game's gray style.
+             */
+            drawHedgehog: function () {
+                var ctx = this.canvasCtx;
+                var x = this.xPos;
+                var y = this.yPos;
+                var w = this.typeConfig.width;
+                var h = this.typeConfig.height;
+                var color = '#535353';
+                var baseY = y + h;          // ground line
+                var domeCx = x + w * 0.54;  // body centre
+                var domeCy = baseY - h * 0.28;
+                var domeRx = w * 0.46;
+
+                ctx.save();
+                ctx.fillStyle = color;
+
+                // Spikes fanned across the back and top.
+                var spikes = 9;
+                for (var i = 0; i < spikes; i++) {
+                    var a = Math.PI * (1.08 - (i / (spikes - 1)) * 1.18);
+                    var bx = domeCx + Math.cos(a) * domeRx * 0.72;
+                    var by = domeCy - Math.sin(a) * (h * 0.20);
+                    var tipX = domeCx + Math.cos(a) * domeRx * 1.18;
+                    var tipY = domeCy - Math.sin(a) * (h * 0.62);
+                    ctx.beginPath();
+                    ctx.moveTo(bx - 2.4, by);
+                    ctx.lineTo(tipX, tipY);
+                    ctx.lineTo(bx + 2.4, by);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // Rounded body sitting on the ground.
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.08, baseY);
+                ctx.quadraticCurveTo(x + w * 0.02, baseY - h * 0.5,
+                    x + w * 0.42, baseY - h * 0.5);
+                ctx.quadraticCurveTo(x + w * 0.98, baseY - h * 0.52,
+                    x + w * 0.94, baseY);
+                ctx.closePath();
+                ctx.fill();
+
+                // Pointed face/snout on the left (facing the t-rex).
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.14, baseY - h * 0.34);
+                ctx.lineTo(x - w * 0.04, baseY - h * 0.14);
+                ctx.lineTo(x + w * 0.20, baseY - h * 0.04);
+                ctx.closePath();
+                ctx.fill();
+
+                // Feet.
+                ctx.fillRect(x + w * 0.30, baseY - 2, 4, 3);
+                ctx.fillRect(x + w * 0.60, baseY - 2, 4, 3);
+
+                // Nose.
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(x - w * 0.02, baseY - h * 0.14, 1.6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye.
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(x + w * 0.16, baseY - h * 0.30, 1.9, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(x + w * 0.16, baseY - h * 0.30, 0.9, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
             },
 
             /**
@@ -1515,6 +1613,28 @@
             speedOffset: .8
         }
     ];
+
+
+    /**
+     * Hedgehog obstacle. Not part of the random Obstacle.types pool - it is
+     * spawned explicitly every 100 points. Two small-cacti wide (34 x 35) and
+     * drawn procedurally (see Obstacle.prototype.drawHedgehog) rather than from
+     * the sprite sheet.
+     */
+    Obstacle.hedgehogType = {
+        type: 'HEDGEHOG',
+        width: 34,
+        height: 35,
+        yPos: 105,
+        multipleSpeed: 999,
+        minGap: 150,
+        minSpeed: 0,
+        custom: true,
+        collisionBoxes: [
+            new CollisionBox(3, 13, 28, 22),
+            new CollisionBox(8, 5, 20, 9)
+        ]
+    };
 
 
     //******************************************************************************
@@ -2822,6 +2942,29 @@
 
         removeFirstObstacle: function () {
             this.obstacles.shift();
+        },
+
+        /**
+         * Spawn a hedgehog obstacle at the right edge, placed after any existing
+         * obstacles so it does not overlap them. Pushed onto the same obstacles
+         * array so it animates, scrolls and collides like a normal obstacle.
+         * @param {number} currentSpeed
+         */
+        addHedgehog: function (currentSpeed) {
+            var xOffset = Obstacle.hedgehogType.width;
+
+            // Keep clear of the last obstacle if it is still near the edge.
+            if (this.obstacles.length > 0) {
+                var last = this.obstacles[this.obstacles.length - 1];
+                var rightEdge = last.xPos + last.width + (last.gap || 0);
+                if (rightEdge - this.dimensions.WIDTH > xOffset) {
+                    xOffset = rightEdge - this.dimensions.WIDTH;
+                }
+            }
+
+            this.obstacles.push(new Obstacle(this.canvasCtx,
+                Obstacle.hedgehogType, this.spritePos.CACTUS_SMALL,
+                this.dimensions, this.gapCoefficient, currentSpeed, xOffset));
         },
 
         /**
