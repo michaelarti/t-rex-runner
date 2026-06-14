@@ -1463,7 +1463,8 @@
         collisionBoxes: [
             new CollisionBox(3, 13, 28, 22),
             new CollisionBox(8, 5, 20, 9)
-        ]
+        ],
+        speedOffset: .6
     };
 
 
