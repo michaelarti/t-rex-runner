@@ -20,11 +20,6 @@ html, body {
   position: relative;
 }
 
-.hidden {
-  display: none;
-}
-
-
 /* Offline page */
 
 .offline .interstitial-wrapper {
@@ -70,18 +65,6 @@ html, body {
   display: none;
 }
 
-@media (max-width: 420px) {
-  .suggested-left > #control-buttons, .suggested-right > #control-buttons {
-    float: none;
-  }
-  .snackbar {
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    border-radius: 0;
-  }
-}
-
 @media (max-height: 350px) {
   h1 {
     margin: 0 0 15px;
@@ -91,9 +74,6 @@ html, body {
   }
   .interstitial-wrapper {
     margin-top: 5%;
-  }
-  .nav-wrapper {
-    margin-top: 30px;
   }
 }
 
@@ -143,7 +123,6 @@ html, body {
   overflow: hidden;
 }
 
-.arcade-mode #buttons,
 .arcade-mode #main-content {
   opacity: 0;
   overflow: hidden;

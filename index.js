@@ -20,8 +20,6 @@
 
         this.outerContainerEl = document.querySelector(outerContainerId);
         this.containerEl = null;
-        this.snackbarEl = null;
-        this.detailsButton = this.outerContainerEl.querySelector('#details-button');
 
         this.config = opt_config || Runner.config;
 
@@ -58,21 +56,12 @@
         this.playCount = 0;
 
         // Sound FX.
-        this.audioBuffer = null;
         this.soundFx = {};
 
         // Global web audio context for playing sounds.
         this.audioContext = null;
 
-        // Images.
-        this.images = {};
-        this.imagesLoaded = 0;
-
-        if (this.isDisabled()) {
-            this.setupDisabledRunner();
-        } else {
-            this.loadImages();
-        }
+        this.loadImages();
     }
     window['Runner'] = Runner;
 
@@ -153,8 +142,6 @@
         CRASHED: 'crashed',
         ICON: 'icon-offline',
         INVERTED: 'inverted',
-        SNACKBAR: 'snackbar',
-        SNACKBAR_SHOW: 'snackbar-show',
         TOUCH_CONTROLLER: 'controller'
     };
 
@@ -237,58 +224,6 @@
 
 
     Runner.prototype = {
-        /**
-         * Whether the easter egg has been disabled. CrOS enterprise enrolled devices.
-         * @return {boolean}
-         */
-        isDisabled: function () {
-            // return loadTimeData && loadTimeData.valueExists('disabledEasterEgg');
-            return false;
-        },
-
-        /**
-         * For disabled instances, set up a snackbar with the disabled message.
-         */
-        setupDisabledRunner: function () {
-            this.containerEl = document.createElement('div');
-            this.containerEl.className = Runner.classes.SNACKBAR;
-            this.containerEl.textContent = loadTimeData.getValue('disabledEasterEgg');
-            this.outerContainerEl.appendChild(this.containerEl);
-
-            // Show notification when the activation key is pressed.
-            document.addEventListener(Runner.events.KEYDOWN, function (e) {
-                if (Runner.keycodes.JUMP[e.keyCode]) {
-                    this.containerEl.classList.add(Runner.classes.SNACKBAR_SHOW);
-                    document.querySelector('.icon').classList.add('icon-disabled');
-                }
-            }.bind(this));
-        },
-
-        /**
-         * Setting individual settings for debugging.
-         * @param {string} setting
-         * @param {*} value
-         */
-        updateConfigSetting: function (setting, value) {
-            if (setting in this.config && value != undefined) {
-                this.config[setting] = value;
-
-                switch (setting) {
-                    case 'GRAVITY':
-                    case 'MIN_JUMP_HEIGHT':
-                    case 'SPEED_DROP_COEFFICIENT':
-                        this.tRex.config[setting] = value;
-                        break;
-                    case 'INITIAL_JUMP_VELOCITY':
-                        this.tRex.setJumpVelocity(value);
-                        break;
-                    case 'SPEED':
-                        this.setSpeed(value);
-                        break;
-                }
-            }
-        },
-
         /**
          * Cache the appropriate image sprite from the page and get the sprite sheet
          * definition.
@@ -492,9 +427,6 @@
                 this.containerEl.style.webkitAnimation = 'intro .4s ease-out 1 both';
                 this.containerEl.style.width = this.dimensions.WIDTH + 'px';
 
-                // if (this.touchController) {
-                //     this.outerContainerEl.appendChild(this.touchController);
-                // }
                 this.playing = true;
                 this.activated = true;
             } else if (this.crashed) {
@@ -667,23 +599,6 @@
         },
 
         /**
-         * Remove all listeners.
-         */
-        stopListening: function () {
-            document.removeEventListener(Runner.events.KEYDOWN, this);
-            document.removeEventListener(Runner.events.KEYUP, this);
-
-            if (IS_MOBILE) {
-                this.touchController.removeEventListener(Runner.events.TOUCHSTART, this);
-                this.touchController.removeEventListener(Runner.events.TOUCHEND, this);
-                this.containerEl.removeEventListener(Runner.events.TOUCHSTART, this);
-            } else {
-                document.removeEventListener(Runner.events.MOUSEDOWN, this);
-                document.removeEventListener(Runner.events.MOUSEUP, this);
-            }
-        },
-
-        /**
          * Process keydown.
          * @param {Event} e
          */
@@ -693,28 +608,26 @@
                 e.preventDefault();
             }
 
-            if (e.target != this.detailsButton) {
-                if (!this.crashed && (Runner.keycodes.JUMP[e.keyCode] ||
-                    e.type == Runner.events.TOUCHSTART)) {
-                    if (!this.playing) {
-                        this.loadSounds();
-                        this.playing = true;
-                        this.update();
-                        if (window.errorPageController) {
-                            errorPageController.trackEasterEgg();
-                        }
-                    }
-                    //  Play sound effect and jump on starting the game for the first time.
-                    if (!this.tRex.jumping && !this.tRex.ducking) {
-                        this.playSound(this.soundFx.BUTTON_PRESS);
-                        this.tRex.startJump(this.currentSpeed);
+            if (!this.crashed && (Runner.keycodes.JUMP[e.keyCode] ||
+                e.type == Runner.events.TOUCHSTART)) {
+                if (!this.playing) {
+                    this.loadSounds();
+                    this.playing = true;
+                    this.update();
+                    if (window.errorPageController) {
+                        errorPageController.trackEasterEgg();
                     }
                 }
+                //  Play sound effect and jump on starting the game for the first time.
+                if (!this.tRex.jumping && !this.tRex.ducking) {
+                    this.playSound(this.soundFx.BUTTON_PRESS);
+                    this.tRex.startJump(this.currentSpeed);
+                }
+            }
 
-                if (this.crashed && e.type == Runner.events.TOUCHSTART &&
-                    e.currentTarget == this.containerEl) {
-                    this.restart();
-                }
+            if (this.crashed && e.type == Runner.events.TOUCHSTART &&
+                e.currentTarget == this.containerEl) {
+                this.restart();
             }
 
             if (this.playing && !this.crashed && Runner.keycodes.DUCK[e.keyCode]) {
@@ -1586,7 +1499,6 @@
         this.reachedMinHeight = false;
         this.speedDrop = false;
         this.jumpCount = 0;
-        this.jumpspotX = 0;
 
         this.init();
     };
@@ -2091,7 +2003,6 @@
         this.currentDistance = 0;
         this.maxScore = 0;
         this.highScore = 0;
-        this.container = null;
 
         this.digits = [];
         this.achievement = false;
@@ -2247,8 +2158,6 @@
                     this.config.MAX_DISTANCE_UNITS) {
                     this.maxScoreUnits++;
                     this.maxScore = parseInt(this.maxScore + '9');
-                } else {
-                    this.distance = 0;
                 }
 
                 if (distance > 0) {
@@ -2857,10 +2766,6 @@
             }
         },
 
-        removeFirstObstacle: function () {
-            this.obstacles.shift();
-        },
-
         /**
          * Spawn a hedgehog obstacle at the right edge, placed after any existing
          * obstacles so it does not overlap them. Pushed onto the same obstacles
@@ -2935,16 +2840,6 @@
             this.obstacles = [];
             this.horizonLine.reset();
             this.nightMode.reset();
-        },
-
-        /**
-         * Update the canvas width and scaling.
-         * @param {number} width Canvas width.
-         * @param {number} height Canvas height.
-         */
-        resize: function (width, height) {
-            this.canvas.width = width;
-            this.canvas.height = height;
         },
 
         /**
