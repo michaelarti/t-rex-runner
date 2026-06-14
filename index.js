@@ -162,7 +162,8 @@
             TEXT_SPRITE: { x: 655, y: 2 },
             TREX: { x: 848, y: 2 },
             STAR: { x: 645, y: 2 },
-            HEDGEHOG: { x: 1235, y: 2 }
+            HEDGEHOG: { x: 1235, y: 2 },
+            FLYING_HEDGEHOG: { x: 1235, y: 2 }
         },
         HDPI: {
             CACTUS_LARGE: { x: 652, y: 2 },
@@ -175,7 +176,8 @@
             TEXT_SPRITE: { x: 1294, y: 2 },
             TREX: { x: 1678, y: 2 },
             STAR: { x: 1276, y: 2 },
-            HEDGEHOG: { x: 2443, y: 2 }
+            HEDGEHOG: { x: 2443, y: 2 },
+            FLYING_HEDGEHOG: { x: 2443, y: 2 }
         }
     };
 
@@ -1296,6 +1298,11 @@
              * Draw and crop based on size.
              */
             draw: function () {
+                if (this.typeConfig.type == 'FLYING_HEDGEHOG') {
+                    this.drawFlyingHedgehog();
+                    return;
+                }
+
                 var sourceWidth = this.typeConfig.width;
                 var sourceHeight = this.typeConfig.height;
 
@@ -1318,6 +1325,59 @@
                     sourceWidth * this.size, sourceHeight,
                     this.xPos, this.yPos,
                     this.typeConfig.width * this.size, this.typeConfig.height);
+            },
+
+            /**
+             * Draw the flying hedgehog: reuse the ground hedgehog body sprite and
+             * draw a flapping wing on each side procedurally. The wing tip rises
+             * and falls with this.currentFrame (toggled by the numFrames logic in
+             * update) to animate the flapping.
+             */
+            drawFlyingHedgehog: function () {
+                var width = this.typeConfig.width;
+                var height = this.typeConfig.height;
+                var sourceWidth = width;
+                var sourceHeight = height;
+
+                if (IS_HIDPI) {
+                    sourceWidth = sourceWidth * 2;
+                    sourceHeight = sourceHeight * 2;
+                }
+
+                // Body: single hedgehog sprite (no sheet animation frames).
+                this.canvasCtx.drawImage(Runner.imageSprite,
+                    this.spritePos.x, this.spritePos.y,
+                    sourceWidth, sourceHeight,
+                    this.xPos, this.yPos,
+                    width, height);
+
+                // Wings: drawn relative to the body, flapping with currentFrame.
+                var ctx = this.canvasCtx;
+                var topY = this.yPos + 8;            // wing root height on the body
+                var flap = this.currentFrame == 0 ? -10 : 4; // tip up vs. down
+                var leftRoot = this.xPos + 8;
+                var rightRoot = this.xPos + width - 8;
+
+                ctx.save();
+                ctx.fillStyle = '#535353';
+
+                // Left wing.
+                ctx.beginPath();
+                ctx.moveTo(leftRoot, topY);
+                ctx.lineTo(this.xPos - 8, topY + flap);
+                ctx.lineTo(leftRoot, topY + 8);
+                ctx.closePath();
+                ctx.fill();
+
+                // Right wing.
+                ctx.beginPath();
+                ctx.moveTo(rightRoot, topY);
+                ctx.lineTo(this.xPos + width + 8, topY + flap);
+                ctx.lineTo(rightRoot, topY + 8);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
             },
 
             /**
@@ -1443,6 +1503,23 @@
             numFrames: 2,
             frameRate: 1000 / 6,
             speedOffset: .8
+        },
+        {
+            type: 'FLYING_HEDGEHOG',
+            width: 34,
+            height: 35,
+            yPos: [100, 75, 50], // Variable flying height (same as pterodactyl).
+            yPosMobile: [100, 50],
+            multipleSpeed: 999,
+            minSpeed: 5,
+            minGap: 150,
+            speedOffset: .9,
+            numFrames: 2,
+            frameRate: 1000 / 6,
+            collisionBoxes: [
+                new CollisionBox(3, 13, 28, 22),
+                new CollisionBox(8, 5, 20, 9)
+            ]
         }
     ];
 
