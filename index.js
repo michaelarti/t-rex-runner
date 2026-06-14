@@ -353,7 +353,7 @@
         },
 
         /**
-         * Game initialiser.
+         * Game Initializer.
          */
         init: function () {
             // Hide the static icon.
@@ -799,7 +799,7 @@
 
             this.stop();
             this.crashed = true;
-            this.distanceMeter.acheivement = false;
+            this.distanceMeter.achievement = false;
 
             this.tRex.update(100, Trex.status.CRASHED);
 
@@ -1332,7 +1332,7 @@
 
         Obstacle.prototype = {
             /**
-             * Initialise the DOM for the obstacle.
+             * Initialize the DOM for the obstacle.
              * @param {number} speed
              */
             init: function (speed) {
@@ -1439,7 +1439,7 @@
 
             /**
              * Calculate a random gap size.
-             * - Minimum gap gets wider as speed increses
+             * - Minimum gap gets wider as speed increases
              * @param {number} gapCoefficient
              * @param {number} speed
              * @return {number} The gap size.
@@ -1477,7 +1477,7 @@
 
     /**
      * Obstacle definitions.
-     * minGap: minimum pixel space betweeen obstacles.
+     * minGap: minimum pixel space between obstacles.
      * multipleSpeed: Speed at which multiples are allowed.
      * speedOffset: speed faster / slower than the horizon.
      * minSpeed: Minimum speed which the obstacle can make an appearance.
@@ -1601,7 +1601,7 @@
         GRAVITY: 0.6,
         HEIGHT: 47,
         HEIGHT_DUCK: 25,
-        INIITAL_JUMP_VELOCITY: -10,
+        INITIAL_JUMP_VELOCITY: -10,
         INTRO_DURATION: 1500,
         MAX_JUMP_HEIGHT: 30,
         MIN_JUMP_HEIGHT: 30,
@@ -1696,10 +1696,10 @@
 
         /**
          * Setter for the jump velocity.
-         * The approriate drop velocity is also set.
+         * The appropriate drop velocity is also set.
          */
         setJumpVelocity: function (setting) {
-            this.config.INIITAL_JUMP_VELOCITY = -setting;
+            this.config.INITIAL_JUMP_VELOCITY = -setting;
             this.config.DROP_VELOCITY = -setting / 2;
         },
 
@@ -1972,14 +1972,14 @@
         },
 
         /**
-         * Initialise a jump.
+         * Initialize a jump.
          * @param {number} speed
          */
         startJump: function (speed) {
             if (!this.jumping) {
                 this.update(0, Trex.status.JUMPING);
                 // Tweak the jump velocity based on the speed.
-                this.jumpVelocity = this.config.INIITAL_JUMP_VELOCITY - (speed / 10);
+                this.jumpVelocity = this.config.INITIAL_JUMP_VELOCITY - (speed / 10);
                 this.jumping = true;
                 this.reachedMinHeight = false;
                 this.speedDrop = false;
@@ -2094,7 +2094,7 @@
         this.container = null;
 
         this.digits = [];
-        this.acheivement = false;
+        this.achievement = false;
         this.defaultString = '';
         this.flashTimer = 0;
         this.flashIterations = 0;
@@ -2148,7 +2148,7 @@
 
     DistanceMeter.prototype = {
         /**
-         * Initialise the distance meter to '00000'.
+         * Initialize the distance meter to '00000'.
          * @param {number} width Canvas width in px.
          */
         init: function (width) {
@@ -2234,13 +2234,13 @@
          * Update the distance meter.
          * @param {number} distance
          * @param {number} deltaTime
-         * @return {boolean} Whether the acheivement sound fx should be played.
+         * @return {boolean} Whether the achievement sound fx should be played.
          */
         update: function (deltaTime, distance) {
             var paint = true;
             var playSound = false;
 
-            if (!this.acheivement) {
+            if (!this.achievement) {
                 distance = this.getActualDistance(distance);
                 // Score has gone beyond the initial digit count.
                 if (distance > this.maxScore && this.maxScoreUnits ==
@@ -2252,10 +2252,10 @@
                 }
 
                 if (distance > 0) {
-                    // Acheivement unlocked
+                    // achievement unlocked
                     if (distance % this.config.ACHIEVEMENT_DISTANCE == 0) {
                         // Flash score and play sound.
-                        this.acheivement = true;
+                        this.achievement = true;
                         this.flashTimer = 0;
                         playSound = true;
                     }
@@ -2268,7 +2268,7 @@
                     this.digits = this.defaultString.split('');
                 }
             } else {
-                // Control flashing of the score on reaching acheivement.
+                // Control flashing of the score on reaching achievement.
                 if (this.flashIterations <= this.config.FLASH_ITERATIONS) {
                     this.flashTimer += deltaTime;
 
@@ -2280,7 +2280,7 @@
                         this.flashIterations++;
                     }
                 } else {
-                    this.acheivement = false;
+                    this.achievement = false;
                     this.flashIterations = 0;
                     this.flashTimer = 0;
                 }
@@ -2327,7 +2327,7 @@
          */
         reset: function () {
             this.update(0);
-            this.acheivement = false;
+            this.achievement = false;
         }
     };
 
@@ -2372,7 +2372,7 @@
 
     Cloud.prototype = {
         /**
-         * Initialise the cloud. Sets the Cloud height.
+         * Initialize the cloud. Sets the Cloud height.
          */
         init: function () {
             this.yPos = getRandomNum(Cloud.config.MAX_SKY_LEVEL,
@@ -2411,7 +2411,7 @@
                 this.xPos -= Math.ceil(speed);
                 this.draw();
 
-                // Mark as removeable if no longer in the canvas.
+                // Mark as removable if no longer in the canvas.
                 if (!this.isVisible()) {
                     this.remove = true;
                 }
@@ -2669,7 +2669,7 @@
         },
 
         /**
-         * Update the x position of an indivdual piece of the line.
+         * Update the x position of an individual piece of the line.
          * @param {number} pos Line position.
          * @param {number} increment
          */
@@ -2761,7 +2761,7 @@
 
     Horizon.prototype = {
         /**
-         * Initialise the horizon. Just add the line and a cloud. No obstacles.
+         * Initialize the horizon. Just add the line and a cloud. No obstacles.
          */
         init: function () {
             this.addCloud();
