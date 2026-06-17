@@ -47,6 +47,8 @@
         this.lives = Runner.config.START_LIVES;
         // Remaining invulnerability time (ms) after taking a hit.
         this.invulnerableTimer = 0;
+        // Floating "+100" score popups from hedgehog kills.
+        this.scorePopups = [];
 
         this.obstacles = [];
 
@@ -541,6 +543,7 @@
 
                 // Hearts for the current lives, top-left at the HI-score height.
                 this.drawLives();
+                this.updateScorePopups(deltaTime);
 
                 // Night mode.
                 if (this.invertTimer > this.config.INVERT_FADE_DURATION) {
@@ -802,6 +805,49 @@
             this.playSound(this.soundFx.SCORE);
             this.horizon.addSplitEffect(ob);
             this.horizon.obstacles.splice(index, 1);
+
+            // Bonus: +100 to the score, with a floating "+100" popup.
+            this.distanceRan += 100 / DistanceMeter.config.COEFFICIENT;
+            this.addScorePopup();
+        },
+
+        /**
+         * Spawn a floating "+100" popup just below the current score; it rises
+         * and fades in updateScorePopups.
+         */
+        addScorePopup: function () {
+            var dm = this.distanceMeter;
+            var rightX = dm.x + DistanceMeter.dimensions.DEST_WIDTH * dm.maxScoreUnits;
+            this.scorePopups.push({ x: rightX, y: 26, t: 0 });
+        },
+
+        /**
+         * Advance and draw "+100" popups, rising upward and fading over ~1s.
+         * @param {number} deltaTime
+         */
+        updateScorePopups: function (deltaTime) {
+            var DURATION = 1000;
+            var RISE = 26;
+            var ctx = this.canvasCtx;
+
+            ctx.save();
+            ctx.font = 'bold 12px "Open Sans", monospace';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = '#535353';
+
+            for (var i = this.scorePopups.length - 1; i >= 0; i--) {
+                var p = this.scorePopups[i];
+                p.t += deltaTime;
+                var k = p.t / DURATION;
+                if (k >= 1) {
+                    this.scorePopups.splice(i, 1);
+                    continue;
+                }
+                ctx.globalAlpha = 1 - k;
+                ctx.fillText('+100', p.x, p.y - k * RISE);
+            }
+            ctx.restore();
         },
 
         /**
@@ -812,13 +858,21 @@
             var ctx = this.canvasCtx;
             var size = 11;        // heart width/height in px
             var spacing = 14;
-            var startX = 10;
             var top = 4;          // aligns with the HI score (y = 5)
 
             ctx.save();
-            ctx.strokeStyle = '#e2231a';
+
+            // Lives count to the left of the hearts, e.g. "[3]".
+            ctx.font = '11px "Open Sans", monospace';
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#535353';
+            var label = '[' + this.lives + ']';
+            ctx.fillText(label, 8, top);
+            var startX = 8 + ctx.measureText(label).width + 6;
+
+            // Filled hearts.
             ctx.fillStyle = '#e2231a';
-            ctx.lineWidth = 1.5;
             ctx.lineJoin = 'round';
 
             for (var i = 0; i < this.lives; i++) {
@@ -837,7 +891,7 @@
                     x + w * 1.1, top + h * 0.55,
                     x + w / 2, top + h);
                 ctx.closePath();
-                ctx.stroke();
+                ctx.fill();
             }
             ctx.restore();
         },
@@ -901,6 +955,7 @@
                 this.nextHedgehogScore = 100;
                 this.lives = this.config.START_LIVES;
                 this.invulnerableTimer = 0;
+                this.scorePopups = [];
                 this.tRex.swinging = false;
                 this.tRex.invulnerable = false;
                 this.setSpeed(this.config.SPEED);
