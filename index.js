@@ -43,6 +43,11 @@
         // Score at which the next hedgehog obstacle should appear.
         this.nextHedgehogScore = 100;
 
+        // T-Rex lives / hit-points. Starts at START_LIVES, capped at MAX_LIVES.
+        this.lives = Runner.config.START_LIVES;
+        // Remaining invulnerability time (ms) after taking a hit.
+        this.invulnerableTimer = 0;
+
         this.obstacles = [];
 
         this.activated = false; // Whether the easter egg has been activated.
@@ -117,7 +122,11 @@
         SPEED: 6,
         SPEED_DROP_COEFFICIENT: 3,
         ARCADE_MODE_INITIAL_TOP_POSITION: 35,
-        ARCADE_MODE_TOP_POSITION_PERCENT: 0.1
+        ARCADE_MODE_TOP_POSITION_PERCENT: 0.1,
+        START_LIVES: 1,
+        MAX_LIVES: 7,
+        INVULNERABLE_TIME: 1500,
+        SWORD_REACH: 30
     };
 
 
@@ -200,7 +209,8 @@
     Runner.keycodes = {
         JUMP: { '38': 1, '32': 1 },  // Up, spacebar
         DUCK: { '40': 1 },  // Down
-        RESTART: { '13': 1 }  // Enter
+        RESTART: { '13': 1 },  // Enter
+        SWORD: { '13': 1 }  // Enter (swing the sword while playing)
     };
 
 
@@ -498,18 +508,28 @@
                         this.inverted);
                 }
 
+                // Count down the post-hit invulnerability window.
+                if (this.invulnerableTimer > 0) {
+                    this.invulnerableTimer -= deltaTime;
+                }
+                this.tRex.invulnerable = this.invulnerableTimer > 0;
+
                 // Check for collisions.
                 var collision = hasObstacles &&
                     checkForCollision(this.horizon.obstacles[0], this.tRex);
 
-                if (!collision) {
+                if (collision && this.invulnerableTimer <= 0) {
+                    this.takeDamage();
+                }
+
+                if (!this.crashed) {
+                    // Keep advancing the game even while passing through an
+                    // obstacle during the invulnerability window.
                     this.distanceRan += this.currentSpeed * deltaTime / this.msPerFrame;
 
                     if (this.currentSpeed < this.config.MAX_SPEED) {
                         this.currentSpeed += this.config.ACCELERATION;
                     }
-                } else {
-                    this.gameOver();
                 }
 
                 var playAchievementSound = this.distanceMeter.update(deltaTime,
@@ -518,6 +538,9 @@
                 if (playAchievementSound) {
                     this.playSound(this.soundFx.SCORE);
                 }
+
+                // Hearts for the current lives, top-left at the HI-score height.
+                this.drawLives();
 
                 // Night mode.
                 if (this.invertTimer > this.config.INVERT_FADE_DURATION) {
@@ -642,6 +665,16 @@
                     this.tRex.setDuck(true);
                 }
             }
+
+            // Swing the sword (Enter). Ignore key auto-repeat mid-swing.
+            if (this.playing && !this.crashed &&
+                Runner.keycodes.SWORD[e.keyCode]) {
+                e.preventDefault();
+                if (!this.tRex.swinging) {
+                    this.tRex.startSwing();
+                    this.attackObstacle();
+                }
+            }
         },
 
 
@@ -706,6 +739,110 @@
         },
 
         /**
+         * Take a hit from an obstacle: lose one life. If lives run out the
+         * game ends, otherwise grant a brief invulnerability window so the
+         * t-rex can pass through the obstacle while blinking.
+         */
+        takeDamage: function () {
+            this.lives--;
+            if (this.lives <= 0) {
+                this.lives = 0;
+                this.gameOver();
+            } else {
+                this.playSound(this.soundFx.HIT);
+                vibrate(200);
+                this.invulnerableTimer = this.config.INVULNERABLE_TIME;
+            }
+        },
+
+        /**
+         * Swing the sword at the nearest hedgehog-type obstacle. Only connects
+         * when the obstacle is close in front (about to collide) and overlaps
+         * the t-rex vertically, so flying hedgehogs must be jumped to.
+         */
+        attackObstacle: function () {
+            var list = this.horizon.obstacles;
+            var trexFront = this.tRex.xPos + this.tRex.config.WIDTH;
+
+            for (var i = 0; i < list.length; i++) {
+                var ob = list[i];
+                var type = ob.typeConfig.type;
+                if (type != 'HEDGEHOG' && type != 'FLYING_HEDGEHOG') {
+                    continue;
+                }
+
+                // Horizontal range: must be just before / during contact.
+                var gap = ob.xPos - trexFront;
+                if (gap > this.config.SWORD_REACH || gap < -ob.width) {
+                    continue;
+                }
+
+                // Vertical overlap: the sword must reach the obstacle's height.
+                var trexTop = this.tRex.yPos;
+                var trexBottom = trexTop + this.tRex.config.HEIGHT;
+                var obTop = ob.yPos;
+                var obBottom = obTop + ob.typeConfig.height;
+                if (obBottom < trexTop || obTop > trexBottom) {
+                    continue;
+                }
+
+                this.killHedgehog(i);
+                return; // One kill per swing.
+            }
+        },
+
+        /**
+         * Destroy a hedgehog: gain a life (capped), play a sound and spawn a
+         * split-in-half effect where it was.
+         * @param {number} index Index into this.horizon.obstacles.
+         */
+        killHedgehog: function (index) {
+            var ob = this.horizon.obstacles[index];
+            this.lives = Math.min(this.lives + 1, this.config.MAX_LIVES);
+            this.playSound(this.soundFx.SCORE);
+            this.horizon.addSplitEffect(ob);
+            this.horizon.obstacles.splice(index, 1);
+        },
+
+        /**
+         * Draw one heart per remaining life in the top-left corner, aligned to
+         * the same height as the HI score. Drawn procedurally (no text/sprite).
+         */
+        drawLives: function () {
+            var ctx = this.canvasCtx;
+            var size = 11;        // heart width/height in px
+            var spacing = 14;
+            var startX = 10;
+            var top = 4;          // aligns with the HI score (y = 5)
+
+            ctx.save();
+            ctx.strokeStyle = '#e2231a';
+            ctx.fillStyle = '#e2231a';
+            ctx.lineWidth = 1.5;
+            ctx.lineJoin = 'round';
+
+            for (var i = 0; i < this.lives; i++) {
+                var x = startX + i * spacing;
+                var w = size;
+                var h = size;
+                // Heart path built from two top lobes and a bottom point.
+                ctx.beginPath();
+                ctx.moveTo(x + w / 2, top + h);
+                ctx.bezierCurveTo(
+                    x - w * 0.1, top + h * 0.55,
+                    x + w * 0.12, top - h * 0.05,
+                    x + w / 2, top + h * 0.28);
+                ctx.bezierCurveTo(
+                    x + w * 0.88, top - h * 0.05,
+                    x + w * 1.1, top + h * 0.55,
+                    x + w / 2, top + h);
+                ctx.closePath();
+                ctx.stroke();
+            }
+            ctx.restore();
+        },
+
+        /**
          * Game over state.
          */
         gameOver: function () {
@@ -762,6 +899,10 @@
                 this.crashed = false;
                 this.distanceRan = 0;
                 this.nextHedgehogScore = 100;
+                this.lives = this.config.START_LIVES;
+                this.invulnerableTimer = 0;
+                this.tRex.swinging = false;
+                this.tRex.invulnerable = false;
                 this.setSpeed(this.config.SPEED);
                 this.time = getTimeStamp();
                 this.containerEl.classList.remove(Runner.classes.CRASHED);
@@ -1578,6 +1719,12 @@
         this.speedDrop = false;
         this.jumpCount = 0;
 
+        // Sword swing state.
+        this.swinging = false;
+        this.swingTimer = 0;
+        // Set by the Runner while the post-hit invulnerability window is active.
+        this.invulnerable = false;
+
         this.init();
     };
 
@@ -1599,7 +1746,8 @@
         SPRITE_WIDTH: 262,
         START_X_POS: 50,
         WIDTH: 44,
-        WIDTH_DUCK: 59
+        WIDTH_DUCK: 59,
+        SWING_DURATION: 250
     };
 
 
@@ -1701,6 +1849,15 @@
         update: function (deltaTime, opt_status) {
             this.timer += deltaTime;
 
+            // Advance the sword swing and end it when its duration elapses.
+            if (this.swinging) {
+                this.swingTimer += deltaTime;
+                if (this.swingTimer >= Trex.config.SWING_DURATION) {
+                    this.swinging = false;
+                    this.swingTimer = 0;
+                }
+            }
+
             // Update the status.
             if (opt_status) {
                 this.status = opt_status;
@@ -1741,6 +1898,15 @@
         },
 
         /**
+         * Start a sword swing. The swing lasts SWING_DURATION ms during which
+         * drawSword animates the blade through an arc.
+         */
+        startSwing: function () {
+            this.swinging = true;
+            this.swingTimer = 0;
+        },
+
+        /**
          * Draw the t-rex to a particular position.
          * @param {number} x
          * @param {number} y
@@ -1763,6 +1929,14 @@
             sourceX += this.spritePos.x;
             sourceY += this.spritePos.y;
 
+            // Blink while invulnerable after a hit.
+            var blinking = this.invulnerable &&
+                Math.floor(getTimeStamp() / 90) % 2 === 0;
+            if (blinking) {
+                this.canvasCtx.save();
+                this.canvasCtx.globalAlpha = 0.25;
+            }
+
             // Ducking.
             if (this.ducking && this.status != Trex.status.CRASHED) {
                 this.drawRainbow(sourceX, sourceY, sourceWidth, sourceHeight,
@@ -1777,6 +1951,10 @@
                 this.drawRainbow(sourceX, sourceY, sourceWidth, sourceHeight,
                     this.xPos, this.yPos,
                     this.config.WIDTH, this.config.HEIGHT);
+            }
+
+            if (blinking) {
+                this.canvasCtx.restore();
             }
         },
 
@@ -1887,6 +2065,19 @@
                 handY = destY + 27 * sy;
                 angle = Math.atan2(-28 * sy, 16 * sx);
                 bladeLen = 30 * sy;
+            }
+
+            // While swinging, sweep the blade through an arc.
+            if (this.swinging) {
+                var swingProgress =
+                    Math.min(this.swingTimer / Trex.config.SWING_DURATION, 1);
+                if (ducking) {
+                    // Quick forward lunge.
+                    angle -= Math.sin(swingProgress * Math.PI) * 0.35;
+                } else {
+                    // Overhead chop sweeping down and forward.
+                    angle += swingProgress * 1.8;
+                }
             }
 
             ctx.save();
@@ -2727,6 +2918,9 @@
         this.clouds = [];
         this.cloudSpeed = this.config.BG_CLOUD_SPEED;
 
+        // Split-in-half effects for hedgehogs killed by the sword.
+        this.splitEffects = [];
+
         // Horizon
         this.horizonLine = null;
         this.init();
@@ -2773,6 +2967,77 @@
 
             if (updateObstacles) {
                 this.updateObstacles(deltaTime, currentSpeed);
+            }
+
+            this.updateSplitEffects(deltaTime);
+        },
+
+        /**
+         * Record a split-in-half effect at a killed hedgehog's position. The
+         * obstacle's sprite is later drawn as two halves flying apart.
+         * @param {Obstacle} obstacle
+         */
+        addSplitEffect: function (obstacle) {
+            this.splitEffects.push({
+                spritePos: obstacle.spritePos,
+                x: obstacle.xPos,
+                y: obstacle.yPos,
+                w: obstacle.typeConfig.width,
+                h: obstacle.typeConfig.height,
+                t: 0
+            });
+        },
+
+        /**
+         * Advance and draw the split effects, removing them once finished.
+         * The left and right halves of the hedgehog sprite slide apart and
+         * upward while fading out.
+         * @param {number} deltaTime
+         */
+        updateSplitEffects: function (deltaTime) {
+            var DURATION = 300;
+            var ctx = this.canvasCtx;
+
+            for (var i = this.splitEffects.length - 1; i >= 0; i--) {
+                var e = this.splitEffects[i];
+                e.t += deltaTime;
+                var p = e.t / DURATION;
+
+                if (p >= 1) {
+                    this.splitEffects.splice(i, 1);
+                    continue;
+                }
+
+                var halfW = e.w / 2;
+                var spread = p * 12;     // horizontal gap between halves
+                var rise = p * 10;       // upward drift
+                var srcX = e.spritePos.x;
+                var srcY = e.spritePos.y;
+                var sW = halfW;
+                var sH = e.h;
+                var srcHalf = halfW;
+                if (IS_HIDPI) {
+                    srcX *= 2;
+                    srcY *= 2;
+                    sW *= 2;
+                    sH *= 2;
+                    srcHalf *= 2;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = 1 - p;
+
+                // Left half slides left and up.
+                ctx.drawImage(Runner.imageSprite,
+                    srcX, srcY, sW, sH,
+                    e.x - spread, e.y - rise, halfW, e.h);
+
+                // Right half slides right and up.
+                ctx.drawImage(Runner.imageSprite,
+                    srcX + srcHalf, srcY, sW, sH,
+                    e.x + halfW + spread, e.y - rise, halfW, e.h);
+
+                ctx.restore();
             }
         },
 
@@ -2916,6 +3181,7 @@
          */
         reset: function () {
             this.obstacles = [];
+            this.splitEffects = [];
             this.horizonLine.reset();
             this.nightMode.reset();
         },
