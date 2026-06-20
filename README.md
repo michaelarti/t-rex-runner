@@ -11,50 +11,50 @@ see the [source](https://cs.chromium.org/chromium/src/components/neterror/resour
 
 ---
 
-## 이 포크의 커스텀 기능 (Custom Features)
+## Custom Features
 
-원본 크롬 오프라인 게임을 확장해 다음 기능들을 추가했습니다. 모든 변경은 [`index.js`](index.js)에 있으며, 추가 에셋 없이 기존 스프라이트와 캔버스 절차적 그리기로 구현했습니다.
+This fork extends the original Chrome offline game with the features below. All changes live in [`index.js`](index.js) and are implemented with the existing sprites and procedural canvas drawing — no extra assets.
 
-### 🦖 무지개 T-Rex와 칼
-- **무지개 T-Rex**: 회색 스프라이트를 흐르는 무지개 그라데이션으로 리컬러링해서 그립니다.
-- **칼(sword)**: T-Rex가 칼을 듭니다. 달리거나 점프할 때는 머리 위로, 숙일 때는 앞으로 찌르는 자세로 칼이 따라 움직입니다.
+### 🦖 Rainbow T-Rex & Sword
+- **Rainbow T-Rex**: the gray sprite is recolored with a flowing rainbow gradient.
+- **Sword**: the T-Rex wields a sword that tracks its pose — raised overhead while running/jumping, and thrust forward while ducking.
 
-### 🦔 고슴도치 장애물
-- **지상 고슴도치**: 점수 100점마다 등장하는 특수 장애물. 가변 속도(`speedOffset .6`)로 수평선보다 빠르거나 느리게 움직입니다.
-- **날아다니는 고슴도치**: 익룡처럼 공중을 나는 새 장애물. 속도가 빨라지면(`minSpeed 5`) 랜덤 등장하며, 가변 속도(`speedOffset .9`)로 날갯짓하며 날아옵니다.
+### 🦔 Hedgehog Obstacles
+- **Ground hedgehog**: a special obstacle that appears every 100 points. It moves at a variable speed (`speedOffset .6`), faster or slower than the horizon.
+- **Flying hedgehog**: a new airborne obstacle that flies in like the pterodactyl. It spawns randomly once the game speeds up (`minSpeed 5`) and flaps its wings while flying at a variable speed (`speedOffset .9`).
 
-### ❤️ 생명력(HP) 시스템
-- 시작 생명력 **1**, 최대 **7**. 좌상단에 `[N] ♥♥♥` 형식으로 숫자 + 하트를 표시합니다(HI 점수와 같은 높이).
-- 장애물에 부딪히면 생명력 **−1**. 피격 직후 잠시 무적 상태가 되어 T-Rex가 깜박이며 그 장애물을 통과합니다.
-- 생명력이 **0**이 되면 게임 오버.
+### ❤️ Lives (HP) System
+- Start with **1** life, up to a maximum of **7**. Lives are shown top-left as `[N] ♥♥♥` (a count plus hearts), aligned to the HI-score height.
+- Hitting an obstacle costs **−1** life. Right after a hit the T-Rex becomes briefly invulnerable, blinking while it passes through that obstacle.
+- The game ends when lives reach **0**.
 
-### ⚔️ 칼 공격
-- **엔터(Enter)** 키로 칼을 휘두릅니다.
-- 고슴도치/날아다니는 고슴도치가 **부딪치기 바로 직전(가까울 때)** 휘둘러야 명중합니다. 멀리 떨어져 있으면 빗나갑니다.
-- 날아다니는 고슴도치는 **높이를 맞춰야**(점프해서) 명중합니다.
-- 정확히 맞히면: 고슴도치가 **반으로 쪼개지며 사라지고**, 생명력 **+1**, 점수 **+100**(점수 위로 `+100`이 떠올라 1초 안에 사라지는 연출).
+### ⚔️ Sword Attack
+- Swing the sword with the **Enter** key.
+- A swing only connects with a hedgehog / flying hedgehog when it is **just about to collide (close)**. Swinging too far away misses.
+- Flying hedgehogs must be **hit at the right height** (jump up to reach them).
+- On an accurate hit the hedgehog **splits in half and vanishes**, granting **+1** life and **+100** points (a `+100` popup floats up above the score and fades within a second).
 
-### 🎮 조작 (Controls)
+### 🎮 Controls
 
-**PC — 키보드**
-| 키 | 동작 |
+**PC — Keyboard**
+| Key | Action |
 | --- | --- |
-| `Space` / `↑` | 점프 |
-| `↓` | 숙이기 |
-| `Enter` | 칼 휘두르기 (게임 중) / 재시작 (게임 오버 시) |
+| `Space` / `↑` | Jump |
+| `↓` | Duck |
+| `Enter` | Swing sword (in game) / Restart (on game over) |
 
-**PC — 마우스**
-| 클릭 | 동작 |
+**PC — Mouse**
+| Click | Action |
 | --- | --- |
-| 게임 화면 **좌측** 클릭 | 점프 (게임 시작도 클릭으로) |
-| 게임 화면 **우측** 클릭 | 칼 휘두르기 |
+| Click the **left** side of the game | Jump (also starts the game) |
+| Click the **right** side of the game | Swing sword |
 
-**휴대폰 (터치, 키보드 없이)**
-| 터치 | 동작 |
+**Phone (touch, no keyboard)**
+| Touch | Action |
 | --- | --- |
-| 화면 **좌측** 탭 | 점프 (게임 시작·재시작도 탭으로) |
-| 화면 **우측** 탭 | 칼 휘두르기 |
+| Tap the **left** side of the screen | Jump (also starts / restarts the game) |
+| Tap the **right** side of the screen | Swing sword |
 
-> 마우스·터치 모두 게임 화면을 좌/우 절반으로 나눠, 왼쪽은 점프·오른쪽은 칼 공격에 대응합니다. 휴대폰에서는 두 손가락으로 양쪽을 따로 탭하면 점프하면서 칼을 휘두를 수도 있습니다.
-> 숙이기(`↓`)는 현재 키보드 전용입니다.
+> Both mouse and touch split the game screen into left/right halves — left jumps, right attacks with the sword. On a phone you can tap both halves with two fingers to jump and swing at the same time.
+> Ducking (`↓`) is currently keyboard-only.
 
