@@ -15,6 +15,8 @@ see the [source](https://cs.chromium.org/chromium/src/components/neterror/resour
 
 This fork extends the original Chrome offline game with the features below. All changes live in [`index.js`](index.js) and are implemented with the existing sprites and procedural canvas drawing — no extra assets.
 
+![custom features demo](assets/custom_screenshot.gif)
+
 ### 🦖 Rainbow T-Rex & Sword
 - **Rainbow T-Rex**: the gray sprite is recolored with a flowing rainbow gradient.
 - **Sword**: the T-Rex wields a sword that tracks its pose — raised overhead while running/jumping, and thrust forward while ducking.
