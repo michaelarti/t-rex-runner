@@ -636,21 +636,36 @@
                 e.preventDefault();
             }
 
-            // Mobile: a tap on the right half of the screen swings the sword
-            // instead of jumping. The left half (and the start tap) jumps.
-            var swordTouch = false;
-            if (e.type == Runner.events.TOUCHSTART && this.playing &&
-                !this.crashed) {
-                var touch = (e.changedTouches && e.changedTouches[0]) ||
-                    (e.touches && e.touches[0]);
-                var splitX = (window.innerWidth || this.dimensions.WIDTH) / 2;
-                if (touch && touch.clientX > splitX) {
-                    swordTouch = true;
+            // A pointer press (touch anywhere, or a left mouse click on the
+            // game canvas) controls the game by screen half: the left half
+            // jumps, the right half swings the sword.
+            var pointerDown = e.type == Runner.events.TOUCHSTART ||
+                (e.type == Runner.events.MOUSEDOWN && e.button != null &&
+                    e.button < 2 && e.target == this.canvas);
+            var pointerJump = false;   // left half (or any start press)
+            var swordPointer = false;  // right half while playing
+            if (pointerDown) {
+                var clientX;
+                if (e.type == Runner.events.TOUCHSTART) {
+                    var touch = (e.changedTouches && e.changedTouches[0]) ||
+                        (e.touches && e.touches[0]);
+                    clientX = touch ? touch.clientX : null;
+                } else {
+                    clientX = e.clientX;
+                }
+                if (clientX != null) {
+                    var rect = this.canvas.getBoundingClientRect();
+                    var splitX = rect.left + rect.width / 2;
+                    if (clientX > splitX && this.playing && !this.crashed) {
+                        swordPointer = true;
+                    } else {
+                        pointerJump = true;
+                    }
                 }
             }
 
-            if (!swordTouch && !this.crashed && (Runner.keycodes.JUMP[e.keyCode] ||
-                e.type == Runner.events.TOUCHSTART)) {
+            if (!this.crashed && (Runner.keycodes.JUMP[e.keyCode] ||
+                pointerJump)) {
                 if (!this.playing) {
                     this.loadSounds();
                     this.playing = true;
@@ -682,10 +697,10 @@
                 }
             }
 
-            // Swing the sword: Enter key, or a tap on the right half (mobile).
-            // Ignore key auto-repeat mid-swing.
+            // Swing the sword: Enter key, or a press on the right half of the
+            // game screen (touch or mouse). Ignore key auto-repeat mid-swing.
             if (this.playing && !this.crashed &&
-                (Runner.keycodes.SWORD[e.keyCode] || swordTouch)) {
+                (Runner.keycodes.SWORD[e.keyCode] || swordPointer)) {
                 e.preventDefault();
                 if (!this.tRex.swinging) {
                     this.tRex.startSwing();
