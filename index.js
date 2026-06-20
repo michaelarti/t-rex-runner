@@ -636,7 +636,20 @@
                 e.preventDefault();
             }
 
-            if (!this.crashed && (Runner.keycodes.JUMP[e.keyCode] ||
+            // Mobile: a tap on the right half of the screen swings the sword
+            // instead of jumping. The left half (and the start tap) jumps.
+            var swordTouch = false;
+            if (e.type == Runner.events.TOUCHSTART && this.playing &&
+                !this.crashed) {
+                var touch = (e.changedTouches && e.changedTouches[0]) ||
+                    (e.touches && e.touches[0]);
+                var splitX = (window.innerWidth || this.dimensions.WIDTH) / 2;
+                if (touch && touch.clientX > splitX) {
+                    swordTouch = true;
+                }
+            }
+
+            if (!swordTouch && !this.crashed && (Runner.keycodes.JUMP[e.keyCode] ||
                 e.type == Runner.events.TOUCHSTART)) {
                 if (!this.playing) {
                     this.loadSounds();
@@ -669,9 +682,10 @@
                 }
             }
 
-            // Swing the sword (Enter). Ignore key auto-repeat mid-swing.
+            // Swing the sword: Enter key, or a tap on the right half (mobile).
+            // Ignore key auto-repeat mid-swing.
             if (this.playing && !this.crashed &&
-                Runner.keycodes.SWORD[e.keyCode]) {
+                (Runner.keycodes.SWORD[e.keyCode] || swordTouch)) {
                 e.preventDefault();
                 if (!this.tRex.swinging) {
                     this.tRex.startSwing();
